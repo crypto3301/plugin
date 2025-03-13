@@ -11,7 +11,6 @@ import (
 
 const FALCO_RULES_URL = "https://raw.githubusercontent.com/falcosecurity/rules/main/rules/falco_rules.yaml"
 
-// Загружает оригинальный файл правил Falco
 func downloadFalcoRules(outputFile string) error {
 	resp, err := http.Get(FALCO_RULES_URL)
 	if err != nil {
@@ -31,7 +30,6 @@ func downloadFalcoRules(outputFile string) error {
 	return ioutil.WriteFile(outputFile, body, 0644)
 }
 
-// modifyRules добавляет макрос и изменяет condition
 func modifyRules(inputFile, outputFile, namespace string) error {
 	data, err := ioutil.ReadFile(inputFile)
 	if err != nil {
@@ -39,7 +37,7 @@ func modifyRules(inputFile, outputFile, namespace string) error {
 	}
 
 	lines := strings.Split(string(data), "\n")
-	reRule := regexp.MustCompile(`^\s*-\s*rule:\s*(.*)$`) // Исправленное регулярное выражение
+	reRule := regexp.MustCompile(`^\s*-\s*rule:\s*(.*)$`) 
 	reConditionStart := regexp.MustCompile(`^\s*condition:\s*>?\s*$`)
 	reConditionBody := regexp.MustCompile(`^\s{4}.*$`)
 
@@ -52,11 +50,9 @@ func modifyRules(inputFile, outputFile, namespace string) error {
 	for _, line := range lines {
 		trimLine := strings.TrimSpace(line)
 
-		// Отладка: вывод текущей строки и результата проверки reRule
 		fmt.Println("Processing line:", trimLine)
 		fmt.Println("Does it match reRule?", reRule.MatchString(trimLine))
 
-		// Добавляем макрос перед первым `rule:`
 		if reRule.MatchString(trimLine) && !macroAdded {
 			fmt.Println("Adding macro before the first rule")
 			modifiedLines = append(modifiedLines, fmt.Sprintf("- macro: not_%s_namespace", namespace))
@@ -65,16 +61,13 @@ func modifyRules(inputFile, outputFile, namespace string) error {
 			macroAdded = true
 		}
 
-		// Определяем, находимся ли мы в секции rules
 		if reRule.MatchString(trimLine) {
 			fmt.Println("Entering rules section:", trimLine)
 			inRulesSection = true
 		}
 
-		// Логирование состояния inRulesSection
 		fmt.Println("inRulesSection:", inRulesSection)
 
-		// Обнаружили начало `condition: >`
 		if reConditionStart.MatchString(trimLine) && inRulesSection {
 			fmt.Println("Found condition start:", trimLine)
 			modifyingCondition = true
@@ -84,14 +77,12 @@ func modifyRules(inputFile, outputFile, namespace string) error {
 			continue
 		}
 
-		// Собираем многострочный `condition:`
 		if modifyingCondition {
 			if reConditionBody.MatchString(line) {
 				fmt.Println("Adding to condition buffer:", line)
 				conditionBuffer = append(conditionBuffer, line)
 				continue
 			} else {
-				// Закончили читать condition → модифицируем
 				fmt.Println("End of condition detected, modifying...")
 				originalCondition := strings.Join(conditionBuffer[1:], "\n")
 				modifiedCondition := fmt.Sprintf("    not_%s_namespace and (\n%s\n    )", namespace, originalCondition)
@@ -105,7 +96,6 @@ func modifyRules(inputFile, outputFile, namespace string) error {
 		modifiedLines = append(modifiedLines, line)
 	}
 
-	// Записываем исправленный файл
 	return ioutil.WriteFile(outputFile, []byte(strings.Join(modifiedLines, "\n")), 0644)
 }
 
