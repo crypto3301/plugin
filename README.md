@@ -3,7 +3,7 @@
 ## Installation and Usage
 
 ```sh
-git clone <repository_url>
+git clone https://github.com/crypto3301/plugin.git
 go run main.go <name_file.yaml> <namespace>
 ```
 
